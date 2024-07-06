@@ -112,11 +112,12 @@ public interface WorldManager {
      *
      * @param worldName     The name of the world to import
      * @param creator       The builder who should be set as the creator
+     * @param worldType
      * @param generator     The generator type used by the world
      * @param generatorName The name of the custom generator if generator type is {@link Generator#CUSTOM}
      * @return {@code true} if the world was successfully imported, otherwise {@code false}
      */
-    boolean importWorld(String worldName, Builder creator, Generator generator, String generatorName);
+    boolean importWorld(String worldName, Builder creator, WorldType worldType, Generator generator, String generatorName);
 
     /**
      * Delete an existing {@link BuildWorld}.

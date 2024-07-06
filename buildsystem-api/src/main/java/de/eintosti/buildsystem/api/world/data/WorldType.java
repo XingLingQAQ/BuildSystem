@@ -20,6 +20,7 @@ package de.eintosti.buildsystem.api.world.data;
 import org.bukkit.World.Environment;
 
 public enum WorldType {
+
     /**
      * The equivalent to a default Minecraft world with {@link Environment#NORMAL}.
      */

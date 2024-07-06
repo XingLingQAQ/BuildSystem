@@ -18,10 +18,55 @@
 package de.eintosti.buildsystem.api.world;
 
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
 public interface Builder {
+
+    /**
+     * Creates a new {@link Builder} instance with the given uuid and name.
+     *
+     * @param uuid The uuid
+     * @param name The name
+     * @return The builder
+     */
+    static Builder of(UUID uuid, String name) {
+        return new BuilderImpl(uuid, name);
+    }
+
+    /**
+     * Creates a new {@link Builder} instance using the given player.
+     *
+     * @param player The player
+     * @return The builder
+     */
+    static Builder of(Player player) {
+        return of(player.getUniqueId(), player.getName());
+    }
+
+    /**
+     * Creates a new {@link Builder} instance using a serialized string.
+     * <p>
+     * The format of the string must be {@code <uuid>,<name>}.
+     *
+     * @param serialized The serialized builder
+     * @return The builder if all the input is valid, otherwise {@code null}
+     */
+    @Nullable
+    static Builder deserialize(@Nullable String serialized) {
+        if (serialized == null) {
+            return null;
+        }
+
+        String[] parts = serialized.split(BuilderImpl.SEPARATOR);
+        if (parts.length != 2) {
+            return null;
+        }
+
+        return of(UUID.fromString(parts[0]), parts[1]);
+    }
+
 
     /**
      * Returns a unique and persistent id for the builder.
@@ -31,7 +76,7 @@ public interface Builder {
      * @return The uuid
      * @see Player#getUniqueId()
      */
-    UUID getUuid();
+    UUID getUniqueId();
 
     /**
      * Gets the name of the builder.

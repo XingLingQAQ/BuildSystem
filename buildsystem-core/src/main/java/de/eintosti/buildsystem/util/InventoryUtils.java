@@ -22,7 +22,6 @@ import com.cryptomorin.xseries.XSound;
 import com.cryptomorin.xseries.messages.Titles;
 import com.cryptomorin.xseries.profiles.builder.XSkull;
 import com.cryptomorin.xseries.profiles.objects.Profileable;
-import de.eintosti.buildsystem.BuildSystem;
 import de.eintosti.buildsystem.BuildSystemPlugin;
 import de.eintosti.buildsystem.Messages;
 import de.eintosti.buildsystem.api.settings.WorldDisplay;
@@ -225,7 +224,7 @@ public class InventoryUtils {
         return true;
     }
 
-    public void addWorldItem(Player player, Inventory inventory, int position, BuildWorld buildWorld) {
+    public void addWorldItem(Player player, Inventory inventory, int position, CraftBuildWorld buildWorld) {
         String worldName = buildWorld.getName();
         String displayName = Messages.getString("world_item_title", player, new AbstractMap.SimpleEntry<>("%world%", worldName));
         List<String> lore = getLore(player, buildWorld);
@@ -372,9 +371,9 @@ public class InventoryUtils {
      * @param settings     The settings that provide the sorting method
      * @return The list of sorted worlds
      */
-    public List<BuildWorld> getDisplayOrder(BuildWorldManager worldManager, CraftSettings settings) {
+    public List<CraftBuildWorld> getDisplayOrder(BuildWorldManager worldManager, CraftSettings settings) {
         WorldDisplay worldDisplay = settings.getWorldDisplay();
-        List<BuildWorld> buildWorlds = worldManager.getBuildWorlds().stream()
+        List<CraftBuildWorld> buildWorlds = worldManager.getCraftBuildWorlds().stream()
                 .filter(worldDisplay.getWorldFilter().apply())
                 .collect(Collectors.toList());
 

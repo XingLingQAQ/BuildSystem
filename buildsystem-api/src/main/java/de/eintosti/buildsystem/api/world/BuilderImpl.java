@@ -15,30 +15,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package de.eintosti.buildsystem.world;
-
-import de.eintosti.buildsystem.api.world.Builder;
-import org.bukkit.entity.Player;
+package de.eintosti.buildsystem.api.world;
 
 import java.util.UUID;
 
-public class CraftBuilder implements Builder {
+final class BuilderImpl implements Builder {
+
+    public static final String SEPARATOR = ",";
 
     private final UUID uuid;
     private String name;
 
-    public CraftBuilder(Player player) {
-        this.uuid = player.getUniqueId();
-        this.name = player.getName();
-    }
-
-    public CraftBuilder(UUID uuid, String name) {
+    BuilderImpl(UUID uuid, String name) {
         this.uuid = uuid;
         this.name = name;
     }
 
     @Override
-    public UUID getUuid() {
+    public UUID getUniqueId() {
         return uuid;
     }
 
@@ -54,6 +48,6 @@ public class CraftBuilder implements Builder {
 
     @Override
     public String toString() {
-        return uuid.toString() + "," + name;
+        return uuid.toString() + SEPARATOR + name;
     }
 }

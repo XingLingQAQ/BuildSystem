@@ -20,7 +20,6 @@ package de.eintosti.buildsystem.world;
 import com.cryptomorin.xseries.XMaterial;
 import com.cryptomorin.xseries.messages.Titles;
 import com.cryptomorin.xseries.profiles.objects.Profileable;
-import de.eintosti.buildsystem.BuildSystem;
 import de.eintosti.buildsystem.BuildSystemPlugin;
 import de.eintosti.buildsystem.Messages;
 import de.eintosti.buildsystem.api.event.world.BuildWorldLoadEvent;
@@ -31,12 +30,9 @@ import de.eintosti.buildsystem.api.world.BuildWorld;
 import de.eintosti.buildsystem.api.world.Builder;
 import de.eintosti.buildsystem.api.world.data.WorldData;
 import de.eintosti.buildsystem.api.world.data.WorldType;
+import de.eintosti.buildsystem.api.world.generator.CustomGenerator;
 import de.eintosti.buildsystem.config.ConfigValues;
 import de.eintosti.buildsystem.util.InventoryUtils;
-import de.eintosti.buildsystem.world.data.WorldData;
-import de.eintosti.buildsystem.world.data.WorldType;
-import de.eintosti.buildsystem.world.generator.CustomGenerator;
-import de.eintosti.buildsystem.util.UUIDFetcher;
 import de.eintosti.buildsystem.world.data.BuildWorldData;
 import de.eintosti.buildsystem.world.generator.CustomGeneratorImpl;
 import org.bukkit.Bukkit;
@@ -175,7 +171,6 @@ public class CraftBuildWorld implements BuildWorld, ConfigurationSerializable {
         this.worldData.setWorldName(name);
     }
 
-    @Override
     public Profileable asProfilable() {
         return hasCreator()
                 ? Profileable.of(creator.getUniqueId())
@@ -303,14 +298,14 @@ public class CraftBuildWorld implements BuildWorld, ConfigurationSerializable {
     @Nullable
     public Builder getBuilder(UUID uuid) {
         return this.builders.stream()
-                .filter(builder -> builder.getUuid().equals(uuid))
+                .filter(builder -> builder.getUniqueId().equals(uuid))
                 .findFirst()
                 .orElse(null);
     }
 
     @Override
     public boolean isBuilder(UUID uuid) {
-        return this.builders.stream().anyMatch(builder -> builder.getUuid().equals(uuid));
+        return this.builders.stream().anyMatch(builder -> builder.getUniqueId().equals(uuid));
     }
 
     @Override

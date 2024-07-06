@@ -20,9 +20,8 @@ package de.eintosti.buildsystem.world;
 import com.cryptomorin.xseries.XMaterial;
 import com.cryptomorin.xseries.XSound;
 import com.cryptomorin.xseries.messages.Titles;
-import de.eintosti.buildsystem.BuildSystemPlugin;
 import com.cryptomorin.xseries.profiles.objects.Profileable;
-import de.eintosti.buildsystem.BuildSystem;
+import de.eintosti.buildsystem.BuildSystemPlugin;
 import de.eintosti.buildsystem.Messages;
 import de.eintosti.buildsystem.api.world.BuildWorld;
 import de.eintosti.buildsystem.api.world.BuildWorldCreator;
@@ -262,8 +261,8 @@ public class BuildWorldManager implements WorldManager {
     }
 
     @Override
-    public boolean importWorld(String worldName, Builder creator, Generator generator, String generatorName) {
-        return importWorld(null, worldName, creator, generator, generatorName, true);
+    public boolean importWorld(String worldName, Builder creator, WorldType worldType, Generator generator, String generatorName) {
+        return importWorld(null, worldName, creator, worldType, generator, generatorName, true);
     }
 
     /**
@@ -272,13 +271,13 @@ public class BuildWorldManager implements WorldManager {
      * @param player        The player who is creating the world
      * @param worldName     Name of the world that the chunk generator should be applied to.
      * @param creator       The builder who should be set as the creator
+     * @param worldType     The type of the world to import
      * @param generator     The generator type used by the world
      * @param generatorName The name of the custom generator if generator type is {@link Generator#CUSTOM}
      * @param single        Is only one world being imported? Used for message sent to the player
-     * @param worldType     The type of the world to import
      * @return {@code true} if the world was successfully imported, otherwise {@code false}
      */
-    public boolean importWorld(Player player, String worldName, Builder creator, Generator generator, String generatorName, boolean single, WorldType worldType) {
+    public boolean importWorld(Player player, String worldName, Builder creator, WorldType worldType, Generator generator, String generatorName, boolean single) {
         ChunkGenerator chunkGenerator = null;
         if (generator == Generator.CUSTOM) {
             String[] generatorInfo = generatorName.split(":");
@@ -294,7 +293,7 @@ public class BuildWorldManager implements WorldManager {
         }
 
         CraftBuildWorldCreator worldCreator = new CraftBuildWorldCreator(plugin, worldName)
-                .setType(WorldType.IMPORTED)
+                .setType(worldType)
                 .setCreator(creator)
                 .setCustomGenerator(new CustomGeneratorImpl(generatorName, chunkGenerator))
                 .setPrivate(false)
@@ -317,7 +316,7 @@ public class BuildWorldManager implements WorldManager {
      * @param creator   The player who should be set as the creator of the world
      * @param worldList The list of world to be imported
      */
-    public void importWorlds(Player player, String[] worldList, Generator generator, @Nullable CraftBuilder creator) {
+    public void importWorlds(Player player, String[] worldList, Generator generator, @Nullable Builder creator) {
         int worlds = worldList.length;
         int delay = configValues.getImportDelay();
 
@@ -355,7 +354,7 @@ public class BuildWorldManager implements WorldManager {
                     return;
                 }
 
-                if (importWorld(player, worldName, creator, generator, null, false, WorldType.IMPORTED)) {
+                if (importWorld(player, worldName, creator, WorldType.IMPORTED, generator, null, false)) {
                     Messages.sendMessage(player, "worlds_importall_world_imported", new AbstractMap.SimpleEntry<>("%world%", worldName));
                 }
             }
@@ -653,7 +652,7 @@ public class BuildWorldManager implements WorldManager {
     }
 
     public boolean canBypassBuildRestriction(Player player) {
-        return player.hasPermission(BuildSystem.ADMIN_PERMISSION) || plugin.getPlayerManager().isInBuildMode(player);
+        return player.hasPermission(BuildSystemPlugin.ADMIN_PERMISSION) || plugin.getPlayerManager().isInBuildMode(player);
     }
 
     /**
@@ -712,9 +711,9 @@ public class BuildWorldManager implements WorldManager {
         worldConfig.loadWorlds(this);
 
         // Cache player heads
-        Profileable.prepare(getBuildWorlds().stream()
+        Profileable.prepare(getCraftBuildWorlds().stream()
                         .filter(buildWorld -> buildWorld.getData().material().get() == XMaterial.PLAYER_HEAD)
-                        .map(BuildWorld::asProfilable)
+                        .map(CraftBuildWorld::asProfilable)
                         .collect(Collectors.toList())
                 )
                 .thenAcceptAsync(profiles -> plugin.getLogger().info("Cached " + profiles.size() + " profiles"));

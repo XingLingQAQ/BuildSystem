@@ -59,38 +59,21 @@ public interface BuildWorld {
     boolean hasCreator();
 
     /**
-     * Get the name of the player who created the world.
+     * Get the world's creator.
      * <p>
-     * In older versions of the plugin, the creator was not saved which is why {@code null} can be returned.
+     * Must not be set.
      *
-     * @return The name of the player who created the world
+     * @return The builder who created the world, if set, otherwise {@code null}
      */
     @Nullable
-    String getCreator();
+    Builder getCreator();
 
     /**
-     * Set the name of the creator.
+     * Set the creator.
      *
-     * @param creator The name of the creator
+     * @param creator The creator
      */
-    void setCreator(String creator);
-
-    /**
-     * Get the unique-id of the player who created the world.
-     * <p>
-     * In older versions of the plugin, the creator was not saved which is why {@code null} can be returned.
-     *
-     * @return The unique-id of the player who created the world
-     */
-    @Nullable
-    UUID getCreatorId();
-
-    /**
-     * Set the unique-id of the creator.
-     *
-     * @param creatorId The unique-id of the creator
-     */
-    void setCreatorId(UUID creatorId);
+    void setCreator(Builder creator);
 
     /**
      * Gets whether the given player is the creator of the world.

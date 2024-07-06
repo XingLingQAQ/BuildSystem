@@ -17,9 +17,8 @@
  */
 package de.eintosti.buildsystem.world.modification;
 
-import de.eintosti.buildsystem.BuildSystemPlugin;
 import com.cryptomorin.xseries.profiles.objects.Profileable;
-import de.eintosti.buildsystem.BuildSystem;
+import de.eintosti.buildsystem.BuildSystemPlugin;
 import de.eintosti.buildsystem.Messages;
 import de.eintosti.buildsystem.api.world.data.WorldStatus;
 import de.eintosti.buildsystem.api.world.data.WorldType;
