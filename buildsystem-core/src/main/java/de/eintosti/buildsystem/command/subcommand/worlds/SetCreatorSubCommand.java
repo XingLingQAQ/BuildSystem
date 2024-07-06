@@ -27,6 +27,9 @@ import de.eintosti.buildsystem.tabcomplete.WorldsTabComplete;
 import de.eintosti.buildsystem.util.PlayerChatInput;
 import de.eintosti.buildsystem.util.UUIDFetcher;
 import de.eintosti.buildsystem.world.BuildWorldManager;
+import de.eintosti.buildsystem.world.BuildWorld;
+import de.eintosti.buildsystem.world.Builder;
+import de.eintosti.buildsystem.world.WorldManager;
 import org.bukkit.entity.Player;
 
 import java.util.AbstractMap;
@@ -61,13 +64,12 @@ public class SetCreatorSubCommand implements SubCommand {
         }
 
         new PlayerChatInput(plugin, player, "enter_world_creator", input -> {
-            String creator = input.trim();
-            buildWorld.setCreator(creator);
-            if (!creator.equalsIgnoreCase("-")) {
-                buildWorld.setCreatorId(UUIDFetcher.getUUID(creator));
-            } else {
-                buildWorld.setCreatorId(null);
+            String creatorName = input.trim();
+            Builder creator = null;
+            if (!creatorName.equalsIgnoreCase("-")) {
+                creator = Builder.of(UUIDFetcher.getUUID(creatorName), creatorName);
             }
+            buildWorld.setCreator(creator);
 
             plugin.getPlayerManager().forceUpdateSidebar(buildWorld);
             XSound.ENTITY_PLAYER_LEVELUP.play(player);

@@ -94,6 +94,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
@@ -179,7 +180,9 @@ public class BuildSystemPlugin extends JavaPlugin {
         registerStats();
         performUpdateCheck();
 
-        Bukkit.getConsoleSender().sendMessage(String.format("%sBuildSystem » Plugin %senabled%s!", ChatColor.RESET, ChatColor.GREEN, ChatColor.RESET));
+        Bukkit.getScheduler().runTaskTimer(this, this::saveBuildConfig, 6000L, 6000L);
+
+        Bukkit.getConsoleSender().sendMessage(String.format(Locale.ROOT, "%sBuildSystem » Plugin %senabled%s!", ChatColor.RESET, ChatColor.GREEN, ChatColor.RESET));
     }
 
     @Override
@@ -197,16 +200,12 @@ public class BuildSystemPlugin extends JavaPlugin {
         reloadConfig();
         reloadConfigData(false);
         saveConfig();
-
-        this.worldManager.save();
-        this.playerManager.save();
-        this.spawnManager.save();
-        this.inventoryUtils.save();
+        saveBuildConfig();
 
         unregisterExpansions();
 
+        Bukkit.getConsoleSender().sendMessage(String.format(Locale.ROOT, "%sBuildSystem » Plugin %sdisabled%s!", ChatColor.RESET, ChatColor.RED, ChatColor.RESET));
         this.api.unregister();
-        Bukkit.getConsoleSender().sendMessage(String.format("%sBuildSystem » Plugin %sdisabled%s!", ChatColor.RESET, ChatColor.RED, ChatColor.RESET));
     }
 
     private boolean initVersionedClasses() {
@@ -223,7 +222,7 @@ public class BuildSystemPlugin extends JavaPlugin {
             return false;
         }
 
-        getLogger().info(String.format("Detected server version: %s (%s)", minecraftVersion, craftBukkitVersion.name()));
+        getLogger().info(String.format(Locale.ROOT, "Detected server version: %s (%s)", minecraftVersion, craftBukkitVersion.name()));
         this.customBlocks = craftBukkitVersion.initCustomBlocks();
         this.gameRules = craftBukkitVersion.initGameRules();
         return true;
@@ -403,6 +402,13 @@ public class BuildSystemPlugin extends JavaPlugin {
         if (templateFolder.mkdirs()) {
             getLogger().info("Created \"templates\" folder");
         }
+    }
+
+    private void saveBuildConfig() {
+        worldManager.save();
+        playerManager.save();
+        spawnManager.save();
+        inventoryUtils.save();
     }
 
     public void sendPermissionMessage(CommandSender sender) {

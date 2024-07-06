@@ -20,19 +20,20 @@ package de.eintosti.buildsystem.listener;
 import com.cryptomorin.xseries.XBlock;
 import com.cryptomorin.xseries.XMaterial;
 import com.cryptomorin.xseries.XTag;
-import de.eintosti.buildsystem.BuildSystemPlugin;
-import de.eintosti.buildsystem.api.world.BuildWorld;
-import de.eintosti.buildsystem.api.world.Builder;
-import de.eintosti.buildsystem.api.world.data.WorldData;
-import de.eintosti.buildsystem.api.world.data.WorldStatus;
+import com.google.common.collect.Sets;
+import de.eintosti.buildsystem.BuildSystem;
 import de.eintosti.buildsystem.config.ConfigValues;
-import de.eintosti.buildsystem.player.BuildPlayerManager;
-import de.eintosti.buildsystem.settings.CraftSettings;
+import de.eintosti.buildsystem.player.PlayerManager;
+import de.eintosti.buildsystem.settings.Settings;
 import de.eintosti.buildsystem.settings.SettingsManager;
 import de.eintosti.buildsystem.util.MaterialUtils;
 import de.eintosti.buildsystem.version.customblocks.CustomBlocks;
 import de.eintosti.buildsystem.version.util.DirectionUtil;
-import de.eintosti.buildsystem.world.BuildWorldManager;
+import de.eintosti.buildsystem.world.BuildWorld;
+import de.eintosti.buildsystem.world.Builder;
+import de.eintosti.buildsystem.world.WorldManager;
+import de.eintosti.buildsystem.world.data.WorldData;
+import de.eintosti.buildsystem.world.data.WorldStatus;
 import org.bukkit.Bukkit;
 import org.bukkit.DyeColor;
 import org.bukkit.Material;
@@ -50,6 +51,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -152,12 +154,13 @@ public class SettingsInteractListener implements Listener {
                 && !XTag.REPLACEABLE_PLANTS.isTagged(xMaterial)
                 && !XTag.ALIVE_CORAL_PLANTS.isTagged(xMaterial)
                 && !XTag.DEAD_CORAL_PLANTS.isTagged(xMaterial)
-                && !XTag.SAPLINGS.isTagged(xMaterial)) {
+                && !XTag.SAPLINGS.isTagged(xMaterial)
+                && !OTHER_PLANTS.contains(xMaterial)) {
             return;
         }
 
         Player player = event.getPlayer();
-        CraftSettings settings = settingsManager.getSettings(player);
+        Settings settings = settingsManager.getSettings(player);
         if (!settings.isPlacePlants()) {
             return;
         }
@@ -165,6 +168,14 @@ public class SettingsInteractListener implements Listener {
         event.setCancelled(true);
         customBlocks.setPlant(event);
     }
+
+    private static final EnumSet<XMaterial> OTHER_PLANTS = Sets.newEnumSet(Sets.newHashSet(
+            XMaterial.TORCHFLOWER, XMaterial.PITCHER_PLANT, XMaterial.LILY_PAD, XMaterial.PINK_PETALS,
+            XMaterial.BROWN_MUSHROOM, XMaterial.RED_MUSHROOM, XMaterial.CRIMSON_FUNGUS, XMaterial.WARPED_FUNGUS,
+            XMaterial.SHORT_GRASS, XMaterial.FERN, XMaterial.DEAD_BUSH, XMaterial.LARGE_FERN, XMaterial.TALL_GRASS,
+            XMaterial.NETHER_SPROUTS, XMaterial.WARPED_ROOTS, XMaterial.CRIMSON_ROOTS, XMaterial.SUGAR_CANE, XMaterial.BAMBOO,
+            XMaterial.BIG_DRIPLEAF, XMaterial.SMALL_DRIPLEAF, XMaterial.SEAGRASS, XMaterial.SWEET_BERRIES
+    ), XMaterial.class);
 
     @EventHandler
     public void manageInstantPlaceSignsSetting(PlayerInteractEvent event) {
@@ -256,7 +267,7 @@ public class SettingsInteractListener implements Listener {
             return;
         }
 
-        CraftSettings settings = settingsManager.getSettings(player);
+        Settings settings = settingsManager.getSettings(player);
         if (!settings.isDisableInteract()) {
             return;
         }
@@ -345,16 +356,15 @@ public class SettingsInteractListener implements Listener {
         }
 
         WorldData worldData = buildWorld.getData();
-        boolean isInBuildMode = playerManager.isInBuildMode(player);
-        if (worldData.status().get() == WorldStatus.ARCHIVE && !isInBuildMode) {
+        if (worldData.status().get() == WorldStatus.ARCHIVE && !player.hasPermission("buildsystem.bypass.archive")) {
             return false;
         }
 
-        if (!worldData.blockPlacement().get() && !isInBuildMode) {
+        if (!worldData.blockPlacement().get()) {
             return false;
         }
 
-        if (buildWorld.getData().buildersEnabled().get() && !buildWorld.isBuilder(player)) {
+        if (buildWorld.getData().buildersEnabled().get() && !buildWorld.isBuilder(player) && !player.hasPermission("buildsystem.bypass.builders")) {
             return buildWorld.isCreator(player);
         }
 

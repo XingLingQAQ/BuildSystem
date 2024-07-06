@@ -17,6 +17,8 @@
  */
 package de.eintosti.buildsystem.world.modification;
 
+import com.cryptomorin.xseries.XEnchantment;
+import com.cryptomorin.xseries.XEntityType;
 import com.cryptomorin.xseries.XMaterial;
 import com.cryptomorin.xseries.XSound;
 import com.google.common.collect.Sets;
@@ -30,12 +32,13 @@ import de.eintosti.buildsystem.command.subcommand.worlds.SetProjectSubCommand;
 import de.eintosti.buildsystem.config.ConfigValues;
 import de.eintosti.buildsystem.player.BuildPlayerManager;
 import de.eintosti.buildsystem.util.InventoryUtils;
+import de.eintosti.buildsystem.world.BuildWorld;
+import de.eintosti.buildsystem.world.Builder;
+import de.eintosti.buildsystem.world.data.WorldData;
 import de.eintosti.buildsystem.world.CraftBuildWorld;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
-import org.bukkit.enchantments.Enchantment;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -48,7 +51,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 import java.util.AbstractMap;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class EditInventory implements Listener {
@@ -89,7 +91,7 @@ public class EditInventory implements Listener {
                 Messages.getStringList("worldeditor_gamerules_lore", player)
         );
         addDifficultyItem(player, inventory, buildWorld);
-        inventoryUtils.addItemStack(inventory, 40, inventoryUtils.getStatusItem(worldData.status().get()), "worldeditor_status_item",
+        inventoryUtils.addItemStack(inventory, 40, inventoryUtils.getStatusItem(worldData.status().get()), Messages.getString("worldeditor_status_item", player),
                 Messages.getStringList("worldeditor_status_lore", player,
                         new AbstractMap.SimpleEntry<>("%status%", Messages.getDataString(buildWorld.getData().status().get().getKey(), player))
                 )
@@ -123,7 +125,7 @@ public class EditInventory implements Listener {
         XMaterial material = buildWorld.getData().material().get();
 
         if (material == XMaterial.PLAYER_HEAD) {
-            inventoryUtils.addSkull(inventory, 4, displayName, buildWorld.getName());
+            inventoryUtils.addSkull(inventory, 4, displayName, buildWorld.asProfilable());
         } else {
             inventoryUtils.addItemStack(inventory, 4, material, displayName);
         }
@@ -141,7 +143,7 @@ public class EditInventory implements Listener {
 
         itemStack.setItemMeta(itemMeta);
         if (isEnabled) {
-            itemStack.addUnsafeEnchantment(Enchantment.DURABILITY, 1);
+            itemStack.addUnsafeEnchantment(XEnchantment.UNBREAKING.getEnchant(), 1);
         }
 
         inventory.setItem(position, itemStack);
@@ -191,8 +193,8 @@ public class EditInventory implements Listener {
     }
 
     private void addBuildersItem(Player player, Inventory inventory, BuildWorld buildWorld) {
-        UUID creatorId = buildWorld.getCreatorId();
-        if ((creatorId != null && creatorId.equals(player.getUniqueId())) || player.hasPermission(BuildSystemPlugin.ADMIN_PERMISSION)) {
+        Builder creator = buildWorld.getCreator();
+        if ((creator != null && creator.getUniqueId().equals(player.getUniqueId())) || player.hasPermission(BuildSystem.ADMIN_PERMISSION)) {
             addSettingsItem(player, inventory, 30, XMaterial.IRON_PICKAXE, buildWorld.getData().buildersEnabled().get(),
                     "worldeditor_builders_item", "worldeditor_builders_lore"
             );
@@ -418,7 +420,7 @@ public class EditInventory implements Listener {
 
         AtomicInteger entitiesRemoved = new AtomicInteger();
         bukkitWorld.getEntities().stream()
-                .filter(entity -> !IGNORED_ENTITIES.contains(entity.getType()))
+                .filter(entity -> !IGNORED_ENTITIES.contains(XEntityType.of(entity)))
                 .forEach(entity -> {
                     entity.remove();
                     entitiesRemoved.incrementAndGet();
@@ -428,18 +430,18 @@ public class EditInventory implements Listener {
         Messages.sendMessage(player, "worldeditor_butcher_removed", new AbstractMap.SimpleEntry<>("%amount%", entitiesRemoved.get()));
     }
 
-    private static final Set<EntityType> IGNORED_ENTITIES = Sets.newHashSet(
-            EntityType.ARMOR_STAND,
-            EntityType.ENDER_CRYSTAL,
-            EntityType.ITEM_FRAME,
-            EntityType.FALLING_BLOCK,
-            EntityType.MINECART,
-            EntityType.MINECART_CHEST,
-            EntityType.MINECART_COMMAND,
-            EntityType.MINECART_FURNACE,
-            EntityType.MINECART_HOPPER,
-            EntityType.MINECART_MOB_SPAWNER,
-            EntityType.MINECART_TNT,
-            EntityType.PLAYER
+    private static final Set<XEntityType> IGNORED_ENTITIES = Sets.newHashSet(
+            XEntityType.ARMOR_STAND,
+            XEntityType.END_CRYSTAL,
+            XEntityType.ITEM_FRAME,
+            XEntityType.FALLING_BLOCK,
+            XEntityType.MINECART,
+            XEntityType.CHEST_MINECART,
+            XEntityType.COMMAND_BLOCK_MINECART,
+            XEntityType.FURNACE_MINECART,
+            XEntityType.HOPPER_MINECART,
+            XEntityType.SPAWNER_MINECART,
+            XEntityType.TNT_MINECART,
+            XEntityType.PLAYER
     );
 }

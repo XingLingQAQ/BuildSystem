@@ -28,6 +28,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.AbstractMap;
+import java.util.Locale;
 
 public class GamemodeCommand implements CommandExecutor {
 
@@ -52,7 +53,7 @@ public class GamemodeCommand implements CommandExecutor {
         }
 
         if (args.length != 0) {
-            switch (args[0].toLowerCase()) {
+            switch (args[0].toLowerCase(Locale.ROOT)) {
                 case "survival":
                 case "s":
                 case "0":

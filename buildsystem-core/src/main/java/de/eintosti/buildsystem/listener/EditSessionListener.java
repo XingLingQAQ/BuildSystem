@@ -75,7 +75,7 @@ public class EditSessionListener implements Listener {
      * @return {@code true} if the edit was cancelled, otherwise {@code false}
      */
     private boolean disableArchivedWorlds(BuildWorld buildWorld, Player player, EditSessionEvent event) {
-        if (worldManager.canBypassBuildRestriction(player)) {
+        if (worldManager.canBypassBuildRestriction(player) || player.hasPermission("buildsystem.bypass.archive")) {
             return false;
         }
 
@@ -96,7 +96,7 @@ public class EditSessionListener implements Listener {
      * @return {@code true} if the edit was cancelled, otherwise {@code false}
      */
     private boolean disableNonBuilders(BuildWorld buildWorld, Player player, EditSessionEvent event) {
-        if (worldManager.canBypassBuildRestriction(player)) {
+        if (worldManager.canBypassBuildRestriction(player) || player.hasPermission("buildsystem.bypass.builders")) {
             return false;
         }
 

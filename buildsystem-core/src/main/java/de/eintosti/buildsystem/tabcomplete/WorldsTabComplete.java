@@ -21,6 +21,11 @@ import com.google.common.collect.Lists;
 import de.eintosti.buildsystem.BuildSystemPlugin;
 import de.eintosti.buildsystem.api.world.generator.Generator;
 import de.eintosti.buildsystem.command.subcommand.Argument;
+import de.eintosti.buildsystem.world.BuildWorld;
+import de.eintosti.buildsystem.world.Builder;
+import de.eintosti.buildsystem.world.WorldManager;
+import de.eintosti.buildsystem.world.data.WorldType;
+import de.eintosti.buildsystem.world.generator.Generator;
 import de.eintosti.buildsystem.world.BuildWorldManager;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -35,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -70,7 +76,7 @@ public class WorldsTabComplete extends ArgumentSorter implements TabCompleter {
             }
 
             case 2: {
-                switch (args[0].toLowerCase()) {
+                switch (args[0].toLowerCase(Locale.ROOT)) {
                     case "builders":
                     case "edit":
                     case "info":
@@ -81,22 +87,40 @@ public class WorldsTabComplete extends ArgumentSorter implements TabCompleter {
                     case "setproject":
                     case "setstatus":
                     case "tp":
-                    case "unimport":
+                    case "unimport": {
                         worldManager.getBuildWorlds().stream()
                                 .filter(world -> player.hasPermission(world.getData().permission().get()) || world.getData().permission().get().equalsIgnoreCase("-"))
-                                .filter(world -> worldManager.isPermitted(player, "buildsystem." + args[0].toLowerCase(), world.getName()))
+                                .filter(world -> worldManager.isPermitted(player, "buildsystem." + args[0].toLowerCase(Locale.ROOT), world.getName()))
                                 .forEach(world -> addArgument(args[1], world.getName(), arrayList));
                         break;
+                    }
 
-                    case "addbuilder":
-                    case "delete":
-                    case "removebuilder":
+                    case "delete": {
                         worldManager.getBuildWorlds().stream()
-                                .filter(world -> worldManager.isPermitted(player, "buildsystem." + args[0].toLowerCase(), world.getName()))
+                                .filter(world -> worldManager.isPermitted(player, "buildsystem." + args[0].toLowerCase(Locale.ROOT), world.getName()))
                                 .forEach(world -> addArgument(args[1], world.getName(), arrayList));
                         break;
+                    }
 
-                    case "import":
+                    case "addbuilder": {
+                        BuildWorld buildWorld = worldManager.getBuildWorld(player.getWorld().getName());
+                        Bukkit.getOnlinePlayers().stream()
+                                .filter(pl -> buildWorld != null && !buildWorld.isBuilder(pl) && !buildWorld.isCreator(pl))
+                                .forEach(pl -> addArgument(args[1], pl.getName(), arrayList));
+                        break;
+                    }
+
+                    case "removebuilder": {
+                        BuildWorld buildWorld = worldManager.getBuildWorld(player.getWorld().getName());
+                        if (buildWorld != null && buildWorld.isCreator(player)) {
+                            for (Builder builder : buildWorld.getBuilders()) {
+                                addArgument(args[1], builder.getName(), arrayList);
+                            }
+                        }
+                        break;
+                    }
+
+                    case "import": {
                         String[] directories = Bukkit.getWorldContainer().list((dir, name) -> {
                             for (String charString : name.split("")) {
                                 if (charString.matches("[^A-Za-z0-9/_-]")) {
@@ -124,6 +148,7 @@ public class WorldsTabComplete extends ArgumentSorter implements TabCompleter {
                             addArgument(args[1], projectName, arrayList);
                         }
                         break;
+                    }
                 }
                 return arrayList;
             }
@@ -137,6 +162,7 @@ public class WorldsTabComplete extends ArgumentSorter implements TabCompleter {
                 Map<String, List<String>> arguments = new HashMap<String, List<String>>() {{
                     put("-g", Arrays.stream(Generator.values()).filter(generator -> generator != Generator.CUSTOM).map(Enum::name).collect(Collectors.toList()));
                     put("-c", Lists.newArrayList());
+                    put("-t", Arrays.stream(WorldType.values()).map(Enum::name).collect(Collectors.toList()));
                 }};
 
                 if (args.length % 2 == 1) {

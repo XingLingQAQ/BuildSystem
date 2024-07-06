@@ -46,6 +46,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.util.AbstractMap;
+import java.util.Locale;
 
 public class CraftBuildWorldCreator implements BuildWorldCreator {
 
@@ -148,8 +149,7 @@ public class CraftBuildWorldCreator implements BuildWorldCreator {
     private CraftBuildWorld createBuildWorldObject(Player player) {
         CraftBuildWorld buildWorld = new CraftBuildWorld(
                 worldName,
-                creator == null ? player.getName() : creator.getName(),
-                creator == null ? player.getUniqueId() : creator.getUuid(),
+                creator == null ? Builder.of(player) : creator,
                 worldType,
                 creationDate,
                 privateWorld,
@@ -270,7 +270,7 @@ public class CraftBuildWorldCreator implements BuildWorldCreator {
     @Nullable
     public World generateBukkitWorld(boolean checkVersion) {
         if (checkVersion && isHigherVersion()) {
-            plugin.getLogger().warning(String.format("\"%s\" was created in a newer version of Minecraft (%s > %s). Skipping...", worldName, parseDataVersion(), plugin.getCraftBukkitVersion().getDataVersion()));
+            plugin.getLogger().warning(String.format(Locale.ROOT, "\"%s\" was created in a newer version of Minecraft (%s > %s). Skipping...", worldName, parseDataVersion(), plugin.getCraftBukkitVersion().getDataVersion()));
             return null;
         }
 

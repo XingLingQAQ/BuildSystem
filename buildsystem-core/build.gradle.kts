@@ -37,7 +37,7 @@ dependencies {
     compileOnly(libs.annotations)
 
     implementation(libs.paperlib)
-    implementation(libs.xseries) { isTransitive = false }
+    implementation(libs.xseries)
     implementation(libs.fastboard)
     implementation(libs.nbt) { isTransitive = false }
     implementation(libs.bstats)
@@ -46,10 +46,6 @@ dependencies {
 tasks {
     assemble {
         dependsOn(shadowJar)
-    }
-
-    compileJava {
-        options.encoding = Charsets.UTF_8.name()
     }
 
     shadowJar {

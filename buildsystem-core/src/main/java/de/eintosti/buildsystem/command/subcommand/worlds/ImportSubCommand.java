@@ -28,12 +28,18 @@ import de.eintosti.buildsystem.util.ArgumentParser;
 import de.eintosti.buildsystem.util.UUIDFetcher;
 import de.eintosti.buildsystem.world.BuildWorldManager;
 import de.eintosti.buildsystem.world.CraftBuilder;
+import de.eintosti.buildsystem.world.BuildWorld;
+import de.eintosti.buildsystem.world.Builder;
+import de.eintosti.buildsystem.world.WorldManager;
+import de.eintosti.buildsystem.world.data.WorldType;
+import de.eintosti.buildsystem.world.generator.Generator;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.util.AbstractMap;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.UUID;
 
 public class ImportSubCommand implements SubCommand {
@@ -84,9 +90,10 @@ public class ImportSubCommand implements SubCommand {
             return;
         }
 
-        CraftBuilder creator = new CraftBuilder(null, "-");
+        Builder creator = null;
         Generator generator = Generator.VOID;
         String generatorName = null;
+        WorldType worldType = WorldType.IMPORTED;
 
         if (args.length != 2) {
             ArgumentParser parser = new ArgumentParser(args);
@@ -98,7 +105,7 @@ public class ImportSubCommand implements SubCommand {
                     return;
                 }
                 try {
-                    generator = Generator.valueOf(generatorArg.toUpperCase());
+                    generator = Generator.valueOf(generatorArg.toUpperCase(Locale.ROOT));
                 } catch (IllegalArgumentException ignored) {
                     generator = Generator.CUSTOM;
                     generatorName = generatorArg;
@@ -116,12 +123,24 @@ public class ImportSubCommand implements SubCommand {
                     Messages.sendMessage(player, "worlds_import_player_not_found");
                     return;
                 }
-                creator = new CraftBuilder(creatorId, creatorArg);
+                creator = Builder.of(creatorId, creatorArg);
+            }
+
+            if (parser.isArgument("t")) {
+                String worldTypeArg = parser.getValue("t");
+                if (worldTypeArg == null) {
+                    Messages.sendMessage(player, "worlds_import_usage");
+                    return;
+                }
+                try {
+                    worldType = WorldType.valueOf(worldTypeArg.toUpperCase(Locale.ROOT));
+                } catch (IllegalArgumentException ignored) {
+                }
             }
         }
 
         Messages.sendMessage(player, "worlds_import_started", new AbstractMap.SimpleEntry<>("%world%", worldName));
-        if (worldManager.importWorld(player, worldName, creator, generator, generatorName, true)) {
+        if (worldManager.importWorld(player, worldName, creator, generator, generatorName, true, worldType)) {
             Messages.sendMessage(player, "worlds_import_finished");
         }
     }

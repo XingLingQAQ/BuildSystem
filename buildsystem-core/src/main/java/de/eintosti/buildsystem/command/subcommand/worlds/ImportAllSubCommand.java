@@ -31,6 +31,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.io.File;
+import java.util.Locale;
 import java.util.UUID;
 
 public class ImportAllSubCommand implements SubCommand {
@@ -80,7 +81,7 @@ public class ImportAllSubCommand implements SubCommand {
 
         ArgumentParser parser = new ArgumentParser(args);
         Generator generator = Generator.VOID;
-        CraftBuilder builder = new CraftBuilder(null, "-");
+        Builder creator = null;
 
         if (parser.isArgument("g")) {
             String generatorArg = parser.getValue("g");
@@ -89,7 +90,7 @@ public class ImportAllSubCommand implements SubCommand {
                 return;
             }
             try {
-                generator = Generator.valueOf(generatorArg.toUpperCase());
+                generator = Generator.valueOf(generatorArg.toUpperCase(Locale.ROOT));
             } catch (IllegalArgumentException ignored) {
             }
         }
@@ -105,10 +106,10 @@ public class ImportAllSubCommand implements SubCommand {
                 Messages.sendMessage(player, "worlds_importall_player_not_found");
                 return;
             }
-            builder = new CraftBuilder(creatorId, creatorArg);
+            creator = Builder.of(creatorId, creatorArg);
         }
 
-        worldManager.importWorlds(player, directories, generator, builder);
+        worldManager.importWorlds(player, directories, generator, creator);
     }
 
     @Override

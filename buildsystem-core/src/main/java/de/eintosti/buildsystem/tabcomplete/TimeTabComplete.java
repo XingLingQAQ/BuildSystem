@@ -27,6 +27,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class TimeTabComplete extends ArgumentSorter implements TabCompleter {
 
@@ -47,7 +48,7 @@ public class TimeTabComplete extends ArgumentSorter implements TabCompleter {
         }
         Player player = (Player) sender;
 
-        switch (label.toLowerCase()) {
+        switch (label.toLowerCase(Locale.ROOT)) {
             case "day":
                 worldManager.getBuildWorlds().forEach(world -> {
                     String worldName = world.getName();

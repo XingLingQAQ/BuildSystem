@@ -65,7 +65,7 @@ public class WorldManipulateListener implements Listener {
         WorldData worldData = buildWorld.getData();
         if (!manageWorldInteraction(player, event, worldData.blockBreaking().get())) {
             worldData.lastEdited().set(System.currentTimeMillis());
-            setStatus(worldData, player);
+            updateStatus(worldData, player);
         }
     }
 
@@ -84,7 +84,7 @@ public class WorldManipulateListener implements Listener {
         WorldData worldData = buildWorld.getData();
         if (!manageWorldInteraction(player, event, worldData.blockPlacement().get())) {
             worldData.lastEdited().set(System.currentTimeMillis());
-            setStatus(worldData, player);
+            updateStatus(worldData, player);
         }
     }
 
@@ -177,7 +177,7 @@ public class WorldManipulateListener implements Listener {
     }
 
     private boolean disableArchivedWorlds(BuildWorld buildWorld, Player player, Event event) {
-        if (worldManager.canBypassBuildRestriction(player)) {
+        if (worldManager.canBypassBuildRestriction(player) || player.hasPermission("buildsystem.bypass.archive")) {
             return false;
         }
 
@@ -205,7 +205,7 @@ public class WorldManipulateListener implements Listener {
     }
 
     private boolean checkBuilders(BuildWorld buildWorld, Player player, Event event) {
-        if (worldManager.canBypassBuildRestriction(player)) {
+        if (worldManager.canBypassBuildRestriction(player) || player.hasPermission("buildsystem.bypass.builders")) {
             return false;
         }
 
@@ -229,7 +229,7 @@ public class WorldManipulateListener implements Listener {
         }
     }
 
-    private void setStatus(WorldData worldData, Player player) {
+    private void updateStatus(WorldData worldData, Player player) {
         if (worldData.status().get() == WorldStatus.NOT_STARTED) {
             worldData.status().set(WorldStatus.IN_PROGRESS);
             plugin.getPlayerManager().forceUpdateSidebar(player);

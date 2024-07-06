@@ -22,6 +22,8 @@ import de.eintosti.buildsystem.BuildSystemPlugin;
 import de.eintosti.buildsystem.api.world.data.WorldStatus;
 import de.eintosti.buildsystem.api.world.data.WorldType;
 
+import java.util.Locale;
+
 public class SetupConfig extends ConfigurationFile {
 
     public SetupConfig(BuildSystemPlugin plugin) {
@@ -29,17 +31,17 @@ public class SetupConfig extends ConfigurationFile {
     }
 
     public void saveCreateItem(WorldType worldType, XMaterial material) {
-        getFile().set("setup.type." + worldType.name().toLowerCase() + ".create", material.name());
+        getFile().set("setup.type." + worldType.name().toLowerCase(Locale.ROOT) + ".create", material.name());
         saveFile();
     }
 
     public void saveDefaultItem(WorldType worldType, XMaterial material) {
-        getFile().set("setup.type." + worldType.name().toLowerCase() + ".default", material.name());
+        getFile().set("setup.type." + worldType.name().toLowerCase(Locale.ROOT) + ".default", material.name());
         saveFile();
     }
 
     public void saveStatusItem(WorldStatus worldStatus, XMaterial material) {
-        getFile().set("setup.status." + worldStatus.name().toLowerCase(), material.name());
+        getFile().set("setup.status." + worldStatus.name().toLowerCase(Locale.ROOT), material.name());
         saveFile();
     }
 }

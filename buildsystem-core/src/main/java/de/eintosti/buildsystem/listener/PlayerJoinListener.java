@@ -34,6 +34,7 @@ import de.eintosti.buildsystem.world.BuildWorldManager;
 import de.eintosti.buildsystem.world.SpawnManager;
 import io.papermc.lib.PaperLib;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -134,7 +135,12 @@ public class PlayerJoinListener implements Listener {
         }
 
         int delay = buildWorld.isLoaded() ? 0 : 20;
-        Bukkit.getScheduler().runTaskLater(plugin, () -> PaperLib.teleportAsync(player, logoutLocation.getLocation()), delay);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            Location location = logoutLocation.getLocation();
+            if (location != null) {
+                PaperLib.teleportAsync(player, location);
+            }
+        }, delay);
     }
 
     @SuppressWarnings("deprecation")

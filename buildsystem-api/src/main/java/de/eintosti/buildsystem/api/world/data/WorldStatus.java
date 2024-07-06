@@ -19,6 +19,8 @@ package de.eintosti.buildsystem.api.world.data;
 
 import de.eintosti.buildsystem.api.world.BuildWorld;
 
+import java.util.Locale;
+
 public enum WorldStatus {
 
     /**
@@ -76,7 +78,7 @@ public enum WorldStatus {
      * @return The permission needed to change the status
      */
     public String getPermission() {
-        return "buildsystem.setstatus." + name().toLowerCase().replace("_", "");
+        return "buildsystem.setstatus." + name().toLowerCase(Locale.ROOT).replace("_", "");
     }
 
     /**

@@ -30,6 +30,8 @@ import de.eintosti.buildsystem.version.v1_13_R1.GameRules_1_13_R1;
 import de.eintosti.buildsystem.version.v1_14_R1.CustomBlocks_1_14_R1;
 import de.eintosti.buildsystem.version.v1_17_R1.CustomBlocks_1_17_R1;
 import de.eintosti.buildsystem.version.v1_20_R1.CustomBlocks_1_20_R1;
+import org.bukkit.Bukkit;
+import org.bukkit.UnsafeValues;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.Nullable;
 
@@ -61,6 +63,9 @@ public enum CraftBukkitVersion {
     v1_19_R3(3337, CustomBlocks_1_17_R1.class, GameRules_1_13_R1.class),
     v1_20_R1(3465, CustomBlocks_1_20_R1.class, GameRules_1_13_R1.class),
     v1_20_R2(3578, CustomBlocks_1_20_R1.class, GameRules_1_13_R1.class),
+    v1_20_R3(3700, CustomBlocks_1_20_R1.class, GameRules_1_13_R1.class),
+    v1_20_R4(3839, CustomBlocks_1_20_R1.class, GameRules_1_13_R1.class),
+    v1_21_R1(3953, CustomBlocks_1_20_R1.class, GameRules_1_13_R1.class),
     UNKNOWN;
 
     private final int dataVersion;
@@ -143,9 +148,15 @@ public enum CraftBukkitVersion {
             case 20:
                 if (patch <= 1) {
                     return v1_20_R1;
-                } else {
+                } else if (patch == 2) {
                     return v1_20_R2;
+                } else if (patch == 3 || patch == 4) {
+                    return v1_20_R3;
+                } else {
+                    return v1_20_R4;
                 }
+            case 21:
+                return v1_21_R1;
             default:
                 if (Boolean.getBoolean("Paper.ignoreWorldDataVersion")) {
                     // Get latest version if server version is to be ignored
@@ -169,8 +180,17 @@ public enum CraftBukkitVersion {
      * @return The server's data version
      * @see <a href="https://minecraft.wiki/wiki/Data_version">Data version</a>
      */
+    @SuppressWarnings("deprecation")
     public int getDataVersion() {
-        return dataVersion;
+        try {
+            // Attempt to get data version from the server itself
+            // Method was only added in newer versions, so it may not be present
+            UnsafeValues.class.getMethod("getDataVersion");
+            return Bukkit.getUnsafe().getDataVersion();
+        } catch (NoSuchMethodException e) {
+            // Fallback to hardcoded value
+            return dataVersion;
+        }
     }
 
     @Nullable

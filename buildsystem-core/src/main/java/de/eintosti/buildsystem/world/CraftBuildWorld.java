@@ -19,6 +19,8 @@ package de.eintosti.buildsystem.world;
 
 import com.cryptomorin.xseries.XMaterial;
 import com.cryptomorin.xseries.messages.Titles;
+import com.cryptomorin.xseries.profiles.objects.Profileable;
+import de.eintosti.buildsystem.BuildSystem;
 import de.eintosti.buildsystem.BuildSystemPlugin;
 import de.eintosti.buildsystem.Messages;
 import de.eintosti.buildsystem.api.event.world.BuildWorldLoadEvent;
@@ -31,6 +33,9 @@ import de.eintosti.buildsystem.api.world.data.WorldData;
 import de.eintosti.buildsystem.api.world.data.WorldType;
 import de.eintosti.buildsystem.config.ConfigValues;
 import de.eintosti.buildsystem.util.InventoryUtils;
+import de.eintosti.buildsystem.world.data.WorldData;
+import de.eintosti.buildsystem.world.data.WorldType;
+import de.eintosti.buildsystem.world.generator.CustomGenerator;
 import de.eintosti.buildsystem.util.UUIDFetcher;
 import de.eintosti.buildsystem.world.data.BuildWorldData;
 import de.eintosti.buildsystem.world.generator.CustomGeneratorImpl;
@@ -60,8 +65,7 @@ public class CraftBuildWorld implements BuildWorld, ConfigurationSerializable {
     private final ConfigValues configValues;
 
     private String name;
-    private String creator;
-    private UUID creatorId;
+    private Builder creator;
 
     private final WorldType worldType;
     private final BuildWorldData worldData;
@@ -75,19 +79,17 @@ public class CraftBuildWorld implements BuildWorld, ConfigurationSerializable {
 
     public CraftBuildWorld(
             String name,
-            String creator,
-            UUID creatorId,
+            Builder creator,
             WorldType worldType,
             long creationDate,
             boolean privateWorld,
-            de.eintosti.buildsystem.api.world.generator.CustomGenerator customGenerator
+            CustomGenerator customGenerator
     ) {
         this.plugin = JavaPlugin.getPlugin(BuildSystemPlugin.class);
         this.configValues = plugin.getConfigValues();
 
         this.name = name;
         this.creator = creator;
-        this.creatorId = creatorId;
         this.worldType = worldType;
         this.worldData = new BuildWorldData(
                 name,
@@ -136,8 +138,7 @@ public class CraftBuildWorld implements BuildWorld, ConfigurationSerializable {
 
     public CraftBuildWorld(
             String name,
-            String creator,
-            UUID creatorId,
+            Builder creator,
             WorldType worldType,
             BuildWorldData worldData,
             long creationDate,
@@ -149,7 +150,6 @@ public class CraftBuildWorld implements BuildWorld, ConfigurationSerializable {
 
         this.name = name;
         this.creator = creator;
-        this.creatorId = creatorId;
         this.worldType = worldType;
         this.worldData = worldData;
         this.creationDate = creationDate;
@@ -176,54 +176,31 @@ public class CraftBuildWorld implements BuildWorld, ConfigurationSerializable {
     }
 
     @Override
+    public Profileable asProfilable() {
+        return hasCreator()
+                ? Profileable.of(creator.getUniqueId())
+                : Profileable.username(name);
+    }
+
+    @Override
     public boolean hasCreator() {
-        return getCreator() != null;
+        return creator != null;
     }
 
     @Override
     @Nullable
-    public String getCreator() {
+    public Builder getCreator() {
         return creator;
     }
 
     @Override
-    public void setCreator(String creator) {
+    public void setCreator(@Nullable Builder creator) {
         this.creator = creator;
     }
 
     @Override
-    @Nullable
-    public UUID getCreatorId() {
-        return creatorId;
-    }
-
-    @Override
-    public void setCreatorId(UUID creatorId) {
-        this.creatorId = creatorId;
-    }
-
-    @Override
     public boolean isCreator(Player player) {
-        return creatorId != null && creatorId.equals(player.getUniqueId());
-    }
-
-    /**
-     * Save the creator's unique-id in a string which is suitable to be stored.
-     *
-     * @return The creator's unique-id as a string
-     */
-    @Nullable
-    private String saveCreatorId() {
-        if (creatorId != null) {
-            return String.valueOf(getCreatorId());
-        }
-
-        String creator = getCreator();
-        if (creator != null && !creator.equalsIgnoreCase("-")) {
-            return String.valueOf(UUIDFetcher.getUUID(creator));
-        } else {
-            return null;
-        }
+        return Objects.equals(this.creator, Builder.of(player));
     }
 
     @Override
@@ -243,7 +220,7 @@ public class CraftBuildWorld implements BuildWorld, ConfigurationSerializable {
 
     @Override
     @Nullable
-    public de.eintosti.buildsystem.api.world.generator.CustomGenerator getCustomGenerator() {
+    public CustomGenerator getCustomGenerator() {
         return customGenerator;
     }
 
@@ -447,6 +424,10 @@ public class CraftBuildWorld implements BuildWorld, ConfigurationSerializable {
             return;
         }
 
+        if (save) {
+            bukkitWorld.save();
+        }
+
         for (Chunk chunk : bukkitWorld.getLoadedChunks()) {
             chunk.unload(save);
         }
@@ -514,8 +495,9 @@ public class CraftBuildWorld implements BuildWorld, ConfigurationSerializable {
     public @NotNull Map<String, Object> serialize() {
         Map<String, Object> world = new HashMap<>();
 
-        world.put("creator", creator);
-        world.put("creator-id", saveCreatorId());
+        if (creator != null) {
+            world.put("creator", creator.toString());
+        }
         world.put("type", worldType.name());
         world.put("data", worldData.serialize());
         world.put("date", creationDate);

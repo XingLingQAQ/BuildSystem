@@ -17,6 +17,7 @@
  */
 package de.eintosti.buildsystem.settings;
 
+import com.cryptomorin.xseries.XEnchantment;
 import com.cryptomorin.xseries.XMaterial;
 import de.eintosti.buildsystem.BuildSystemPlugin;
 import de.eintosti.buildsystem.Messages;
@@ -100,7 +101,7 @@ public class DesignInventory implements Listener {
 
         itemStack.setItemMeta(itemMeta);
         if (settings.getDesignColor() == color) {
-            itemStack.addUnsafeEnchantment(Enchantment.DURABILITY, 1);
+            itemStack.addUnsafeEnchantment(XEnchantment.UNBREAKING.getEnchant(), 1);
         }
 
         inventory.setItem(position, itemStack);

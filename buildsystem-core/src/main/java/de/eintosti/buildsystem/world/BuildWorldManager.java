@@ -21,6 +21,8 @@ import com.cryptomorin.xseries.XMaterial;
 import com.cryptomorin.xseries.XSound;
 import com.cryptomorin.xseries.messages.Titles;
 import de.eintosti.buildsystem.BuildSystemPlugin;
+import com.cryptomorin.xseries.profiles.objects.Profileable;
+import de.eintosti.buildsystem.BuildSystem;
 import de.eintosti.buildsystem.Messages;
 import de.eintosti.buildsystem.api.world.BuildWorld;
 import de.eintosti.buildsystem.api.world.BuildWorldCreator;
@@ -64,6 +66,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -272,9 +275,10 @@ public class BuildWorldManager implements WorldManager {
      * @param generator     The generator type used by the world
      * @param generatorName The name of the custom generator if generator type is {@link Generator#CUSTOM}
      * @param single        Is only one world being imported? Used for message sent to the player
+     * @param worldType     The type of the world to import
      * @return {@code true} if the world was successfully imported, otherwise {@code false}
      */
-    public boolean importWorld(Player player, String worldName, Builder creator, Generator generator, String generatorName, boolean single) {
+    public boolean importWorld(Player player, String worldName, Builder creator, Generator generator, String generatorName, boolean single, WorldType worldType) {
         ChunkGenerator chunkGenerator = null;
         if (generator == Generator.CUSTOM) {
             String[] generatorInfo = generatorName.split(":");
@@ -313,7 +317,7 @@ public class BuildWorldManager implements WorldManager {
      * @param creator   The player who should be set as the creator of the world
      * @param worldList The list of world to be imported
      */
-    public void importWorlds(Player player, String[] worldList, Generator generator, CraftBuilder creator) {
+    public void importWorlds(Player player, String[] worldList, Generator generator, @Nullable CraftBuilder creator) {
         int worlds = worldList.length;
         int delay = configValues.getImportDelay();
 
@@ -351,7 +355,7 @@ public class BuildWorldManager implements WorldManager {
                     return;
                 }
 
-                if (importWorld(player, worldName, creator, generator, null, false)) {
+                if (importWorld(player, worldName, creator, generator, null, false, WorldType.IMPORTED)) {
                     Messages.sendMessage(player, "worlds_importall_world_imported", new AbstractMap.SimpleEntry<>("%world%", worldName));
                 }
             }
@@ -511,6 +515,10 @@ public class BuildWorldManager implements WorldManager {
     public void renameWorld(Player player, BuildWorld buildWorld, String newName) {
         player.closeInventory();
 
+        if (worldExists(player, newName)) {
+            return;
+        }
+
         String oldName = buildWorld.getName();
         if (oldName.equalsIgnoreCase(newName)) {
             Messages.sendMessage(player, "worlds_rename_same_name");
@@ -645,9 +653,7 @@ public class BuildWorldManager implements WorldManager {
     }
 
     public boolean canBypassBuildRestriction(Player player) {
-        return player.hasPermission(BuildSystemPlugin.ADMIN_PERMISSION)
-                || player.hasPermission("buildsystem.bypass.archive")
-                || plugin.getPlayerManager().isInBuildMode(player);
+        return player.hasPermission(BuildSystem.ADMIN_PERMISSION) || plugin.getPlayerManager().isInBuildMode(player);
     }
 
     /**
@@ -704,6 +710,14 @@ public class BuildWorldManager implements WorldManager {
 
         worlds.forEach(this::loadWorld);
         worldConfig.loadWorlds(this);
+
+        // Cache player heads
+        Profileable.prepare(getBuildWorlds().stream()
+                        .filter(buildWorld -> buildWorld.getData().material().get() == XMaterial.PLAYER_HEAD)
+                        .map(BuildWorld::asProfilable)
+                        .collect(Collectors.toList())
+                )
+                .thenAcceptAsync(profiles -> plugin.getLogger().info("Cached " + profiles.size() + " profiles"));
     }
 
     public void loadWorld(String worldName) {
@@ -712,8 +726,7 @@ public class BuildWorldManager implements WorldManager {
             return;
         }
 
-        String creator = configuration.isString("worlds." + worldName + ".creator") ? configuration.getString("worlds." + worldName + ".creator") : "-";
-        UUID creatorId = parseCreatorId(configuration, worldName, creator);
+        Builder creator = parseCreator(configuration, worldName);
         WorldType worldType = configuration.isString("worlds." + worldName + ".type") ? WorldType.valueOf(configuration.getString("worlds." + worldName + ".type")) : WorldType.UNKNOWN;
         BuildWorldData worldData = parseWorldData(configuration, worldName);
         long creationDate = configuration.isLong("worlds." + worldName + ".date") ? configuration.getLong("worlds." + worldName + ".date") : -1;
@@ -724,7 +737,6 @@ public class BuildWorldManager implements WorldManager {
         this.addBuildWorld(new CraftBuildWorld(
                 worldName,
                 creator,
-                creatorId,
                 worldType,
                 worldData,
                 creationDate,
@@ -741,7 +753,7 @@ public class BuildWorldManager implements WorldManager {
             String permission = configuration.getString("worlds." + worldName + ".permission");
             String project = configuration.getString("worlds." + worldName + ".project");
 
-            Difficulty difficulty = Difficulty.valueOf(configuration.getString("worlds." + worldName + ".difficulty", "PEACEFUL").toUpperCase());
+            Difficulty difficulty = Difficulty.valueOf(configuration.getString("worlds." + worldName + ".difficulty", "PEACEFUL").toUpperCase(Locale.ROOT));
             XMaterial material = parseMaterial(configuration, "worlds." + worldName + ".item", worldName);
             WorldStatus worldStatus = WorldStatus.valueOf(configuration.getString("worlds." + worldName + ".status"));
 
@@ -765,7 +777,7 @@ public class BuildWorldManager implements WorldManager {
         String permission = configuration.getString(path + ".permission");
         String project = configuration.getString(path + ".project");
 
-        Difficulty difficulty = Difficulty.valueOf(configuration.getString(path + ".difficulty").toUpperCase());
+        Difficulty difficulty = Difficulty.valueOf(configuration.getString(path + ".difficulty").toUpperCase(Locale.ROOT));
         XMaterial material = parseMaterial(configuration, path + ".material", worldName);
         WorldStatus worldStatus = WorldStatus.valueOf(configuration.getString(path + ".status"));
 
@@ -806,19 +818,25 @@ public class BuildWorldManager implements WorldManager {
         }
     }
 
-    private UUID parseCreatorId(FileConfiguration configuration, String worldName, String creator) {
-        final String path = "worlds." + worldName + ".creator-id";
-        final String id = configuration.isString(path) ? configuration.getString(path) : null;
+    private Builder parseCreator(FileConfiguration configuration, String worldName) {
+        final String creator = configuration.getString("worlds." + worldName + ".creator");
+        final String oldCreatorIdPath = "worlds." + worldName + ".creator-id";
+        final String oldCreatorId = configuration.isString(oldCreatorIdPath) ? configuration.getString(oldCreatorIdPath) : null;
 
-        if (id == null || id.equalsIgnoreCase("null")) {
-            if (!creator.equals("-")) {
-                return UUIDFetcher.getUUID(creator);
-            } else {
+        // Previously, creator name & id were stored separately
+        if (oldCreatorId != null) {
+            if (creator == null || creator.equals("-")) {
                 return null;
             }
-        } else {
-            return UUID.fromString(id);
+
+            if (!oldCreatorId.equals("null")) {
+                return Builder.of(UUID.fromString(oldCreatorId), creator);
+            }
+
+            return Builder.of(UUIDFetcher.getUUID(creator), creator);
         }
+
+        return Builder.deserialize(creator);
     }
 
     private List<Builder> parseBuilders(FileConfiguration configuration, String worldName) {
@@ -829,8 +847,7 @@ public class BuildWorldManager implements WorldManager {
             if (buildersString != null && !buildersString.isEmpty()) {
                 String[] splitBuilders = buildersString.split(";");
                 for (String builder : splitBuilders) {
-                    String[] information = builder.split(",");
-                    builders.add(new CraftBuilder(UUID.fromString(information[0]), information[1]));
+                    builders.add(Builder.deserialize(builder));
                 }
             }
         }

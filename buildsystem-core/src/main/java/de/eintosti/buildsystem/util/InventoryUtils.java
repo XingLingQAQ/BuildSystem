@@ -17,10 +17,12 @@
  */
 package de.eintosti.buildsystem.util;
 
-import com.cryptomorin.xseries.SkullUtils;
 import com.cryptomorin.xseries.XMaterial;
 import com.cryptomorin.xseries.XSound;
 import com.cryptomorin.xseries.messages.Titles;
+import com.cryptomorin.xseries.profiles.builder.XSkull;
+import com.cryptomorin.xseries.profiles.objects.Profileable;
+import de.eintosti.buildsystem.BuildSystem;
 import de.eintosti.buildsystem.BuildSystemPlugin;
 import de.eintosti.buildsystem.Messages;
 import de.eintosti.buildsystem.api.settings.WorldDisplay;
@@ -52,7 +54,6 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.SkullMeta;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -60,6 +61,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -183,52 +185,30 @@ public class InventoryUtils {
         addItemStack(inventory, position, getColouredGlassPane(plugin, player), " ");
     }
 
-    public ItemStack getSkull(String displayName, String skullOwner, List<String> lore) {
-        ItemStack skull = XMaterial.PLAYER_HEAD.parseItem();
-        SkullMeta skullMeta = SkullUtils.applySkin(skull.getItemMeta(), skullOwner);
+    public ItemStack getSkull(String displayName, Profileable profileable, List<String> lore) {
+        ItemStack skull = XSkull.createItem()
+                .profile(profileable)
+                .lenient()
+                .apply();
 
-        skullMeta.setDisplayName(displayName);
-        skullMeta.setLore(lore);
-        skull.setItemMeta(skullMeta);
-
-        skull.setItemMeta(skullMeta);
-        return skull;
-    }
-
-    public ItemStack getSkull(String displayName, String skullOwner, String... lore) {
-        return getSkull(displayName, skullOwner, Arrays.asList(lore));
-    }
-
-    public void addSkull(Inventory inventory, int position, String displayName, String skullOwner, List<String> lore) {
-        inventory.setItem(position, getSkull(displayName, skullOwner, lore));
-    }
-
-    public void addSkull(Inventory inventory, int position, String displayName, String skullOwner, String... lore) {
-        addSkull(inventory, position, displayName, skullOwner, Arrays.asList(lore));
-    }
-
-    public ItemStack getUrlSkull(String displayName, String url, List<String> lore) {
-        ItemStack skull = XMaterial.PLAYER_HEAD.parseItem();
-        SkullMeta skullMeta = SkullUtils.applySkin(skull.getItemMeta(), url);
-
-        skullMeta.setDisplayName(displayName);
-        skullMeta.setLore(lore);
-        skullMeta.addItemFlags(ItemFlag.values());
-        skull.setItemMeta(skullMeta);
+        ItemMeta itemMeta = skull.getItemMeta();
+        itemMeta.setDisplayName(displayName);
+        itemMeta.setLore(lore);
+        skull.setItemMeta(itemMeta);
 
         return skull;
     }
 
-    public ItemStack getUrlSkull(String displayName, String url, String... lore) {
-        return getUrlSkull(displayName, url, Arrays.asList(lore));
+    public ItemStack getSkull(String displayName, Profileable profileable, String... lore) {
+        return getSkull(displayName, profileable, Arrays.asList(lore));
     }
 
-    public void addUrlSkull(Inventory inventory, int position, String displayName, String url, List<String> lore) {
-        inventory.setItem(position, getUrlSkull(displayName, url, lore));
+    public void addSkull(Inventory inventory, int position, String displayName, Profileable profileable, List<String> lore) {
+        inventory.setItem(position, getSkull(displayName, profileable, lore));
     }
 
-    public void addUrlSkull(Inventory inventory, int position, String displayName, String url, String... lore) {
-        addUrlSkull(inventory, position, displayName, url, Arrays.asList(lore));
+    public void addSkull(Inventory inventory, int position, String displayName, Profileable profileable, String... lore) {
+        addSkull(inventory, position, displayName, profileable, Arrays.asList(lore));
     }
 
     public boolean checkIfValidClick(InventoryClickEvent event, String titleKey) {
@@ -248,12 +228,36 @@ public class InventoryUtils {
     public void addWorldItem(Player player, Inventory inventory, int position, BuildWorld buildWorld) {
         String worldName = buildWorld.getName();
         String displayName = Messages.getString("world_item_title", player, new AbstractMap.SimpleEntry<>("%world%", worldName));
-        XMaterial material = buildWorld.getData().material().get();
+        List<String> lore = getLore(player, buildWorld);
 
-        if (material == XMaterial.PLAYER_HEAD) {
-            addSkull(inventory, position, displayName, worldName, getLore(player, buildWorld));
-        } else {
-            addItemStack(inventory, position, material, displayName, getLore(player, buildWorld));
+        XMaterial material = buildWorld.getData().material().get();
+        if (material != XMaterial.PLAYER_HEAD) {
+            addItemStack(inventory, position, material, displayName, lore);
+            return;
+        }
+
+        // Initially set default head
+        addItemStack(inventory, position, XMaterial.PLAYER_HEAD, displayName, lore);
+
+        // The try to set texture asynchronously
+        try {
+            XSkull.createItem()
+                    .profile(buildWorld.getData().privateWorld().get()
+                            ? buildWorld.asProfilable()
+                            : Profileable.username(buildWorld.getName())
+                    )
+                    .fallback(buildWorld.asProfilable())
+                    .lenient()
+                    .applyAsync()
+                    .thenAcceptAsync(itemStack -> {
+                        ItemMeta itemMeta = itemStack.getItemMeta();
+                        itemMeta.setDisplayName(displayName);
+                        itemMeta.setLore(lore);
+                        itemStack.setItemMeta(itemMeta);
+                        inventory.setItem(position, itemStack);
+                    });
+        } catch (Exception e) {
+            // Probably too many requests
         }
     }
 
@@ -376,17 +380,17 @@ public class InventoryUtils {
 
         switch (worldDisplay.getWorldSort()) {
             default: // NAME_A_TO_Z
-                buildWorlds.sort(Comparator.comparing(worldA -> worldA.getName().toLowerCase()));
+                buildWorlds.sort(Comparator.comparing(worldA -> worldA.getName().toLowerCase(Locale.ROOT)));
                 break;
             case NAME_Z_TO_A:
-                buildWorlds.sort(Comparator.comparing(worldA -> worldA.getName().toLowerCase()));
+                buildWorlds.sort(Comparator.comparing(worldA -> worldA.getName().toLowerCase(Locale.ROOT)));
                 Collections.reverse(buildWorlds);
                 break;
             case PROJECT_A_TO_Z:
-                buildWorlds.sort(Comparator.comparing(worldA -> worldA.getData().project().get().toLowerCase()));
+                buildWorlds.sort(Comparator.comparing(worldA -> worldA.getData().project().get().toLowerCase(Locale.ROOT)));
                 break;
             case PROJECT_Z_TO_A:
-                buildWorlds.sort(Comparator.comparing(worldA -> worldA.getData().project().get().toLowerCase()));
+                buildWorlds.sort(Comparator.comparing(worldA -> worldA.getData().project().get().toLowerCase(Locale.ROOT)));
                 Collections.reverse(buildWorlds);
                 break;
             case STATUS_NOT_STARTED:
@@ -418,7 +422,7 @@ public class InventoryUtils {
                 new AbstractMap.SimpleEntry<>("%status%", Messages.getDataString(worldData.status().get().getKey(), player)),
                 new AbstractMap.SimpleEntry<>("%project%", worldData.project().get()),
                 new AbstractMap.SimpleEntry<>("%permission%", worldData.permission().get()),
-                new AbstractMap.SimpleEntry<>("%creator%", buildWorld.hasCreator() ? buildWorld.getCreator() : "-"),
+                new AbstractMap.SimpleEntry<>("%creator%", buildWorld.hasCreator() ? buildWorld.getCreator().getName() : "-"),
                 new AbstractMap.SimpleEntry<>("%creation%", Messages.formatDate(buildWorld.getCreationDate())),
                 new AbstractMap.SimpleEntry<>("%lastedited%", Messages.formatDate(worldData.lastEdited().get())),
                 new AbstractMap.SimpleEntry<>("%lastloaded%", Messages.formatDate(worldData.lastLoaded().get())),
@@ -771,13 +775,13 @@ public class InventoryUtils {
             String createMaterialString = configuration.getString("setup.type." + worldType + ".create");
             if (createMaterialString != null) {
                 Optional<XMaterial> xMaterial = XMaterial.matchXMaterial(createMaterialString);
-                xMaterial.ifPresent(material -> setCreateItem(WorldType.valueOf(worldType.toUpperCase()), material));
+                xMaterial.ifPresent(material -> setCreateItem(WorldType.valueOf(worldType.toUpperCase(Locale.ROOT)), material));
             }
 
             String defaultMaterialString = configuration.getString("setup.type." + worldType + ".default");
             if (defaultMaterialString != null) {
                 Optional<XMaterial> xMaterial = XMaterial.matchXMaterial(defaultMaterialString);
-                xMaterial.ifPresent(material -> setDefaultItem(WorldType.valueOf(worldType.toUpperCase()), material));
+                xMaterial.ifPresent(material -> setDefaultItem(WorldType.valueOf(worldType.toUpperCase(Locale.ROOT)), material));
             }
         }
     }
@@ -802,7 +806,7 @@ public class InventoryUtils {
             String statusString = configuration.getString("setup.status." + status);
             if (statusString != null) {
                 Optional<XMaterial> xMaterial = XMaterial.matchXMaterial(statusString);
-                xMaterial.ifPresent(material -> setStatusItem(WorldStatus.valueOf(status.toUpperCase()), material));
+                xMaterial.ifPresent(material -> setStatusItem(WorldStatus.valueOf(status.toUpperCase(Locale.ROOT)), material));
             }
         }
     }
